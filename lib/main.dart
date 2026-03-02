@@ -1,518 +1,313 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const ExpenseTrackerApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class ExpenseTrackerApp extends StatelessWidget {
+  const ExpenseTrackerApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
+      title: 'Expense Tracker',
       debugShowCheckedModeBanner: false,
-      home: QuizPage(),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+        useMaterial3: true,
+      ),
+      home: const ExpensesHomePage(),
     );
   }
 }
 
-class QuizPage extends StatefulWidget {
-  const QuizPage({super.key});
+// ─────────────────────────────────────────────
+// SCREEN 1 — ExpensesHomePage
+// ─────────────────────────────────────────────
+class ExpensesHomePage extends StatefulWidget {
+  const ExpensesHomePage({super.key});
 
   @override
-  State<QuizPage> createState() => _QuizPageState();
+  State<ExpensesHomePage> createState() => _ExpensesHomePageState();
 }
 
-class _QuizPageState extends State<QuizPage> {
-  int viewState = 0;
-  int questionIndex = 0;
-  int score = 0;
-  bool answered = false;
-  int? selectedAnswer;
+class _ExpensesHomePageState extends State<ExpensesHomePage> {
+  final List<String> _expenses = [];
 
-  final List<Map<String, dynamic>> questions = [
-    {
-      "question":
-          "Which mobile app feature would help KD Sari-Sari Store manage inventory efficiently?",
-      "choices": [
-        "Inventory alerts",
-        "Music player",
-        "Photo filters",
-        "Mobile games",
-      ],
-      "answer": 0,
-    },
-    {
-      "question": "Which feature allows customers to order products remotely?",
-      "choices": [
-        "Online ordering",
-        "Camera effects",
-        "Wallpaper changer",
-        "Audio player",
-      ],
-      "answer": 0,
-    },
-    {
-      "question": "Which app function helps track daily sales and income?",
-      "choices": [
-        "Sales reports",
-        "Video editor",
-        "Emoji stickers",
-        "Music streaming",
-      ],
-      "answer": 0,
-    },
-    {
-      "question":
-          "What feature improves communication between store and customers?",
-      "choices": [
-        "Push notifications",
-        "Game rewards",
-        "Live filters",
-        "Photo gallery",
-      ],
-      "answer": 0,
-    },
-  ];
+  Future<void> _openAddExpensePage() async {
+    final String? title = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (context) => const AddExpensePage()),
+    );
 
-  void startQuiz() {
-    setState(() {
-      viewState = 1;
-      questionIndex = 0;
-      score = 0;
-      answered = false;
-      selectedAnswer = null;
-    });
+    if (title != null && title.isNotEmpty && mounted) {
+      setState(() => _expenses.add(title));
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Added: $title'),
+          backgroundColor: Colors.teal,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
-  void answerQuestion(int index) {
-    setState(() {
-      answered = true;
-      selectedAnswer = index;
-      if (index == questions[questionIndex]["answer"]) {
-        score++;
-      }
-    });
-  }
+  // ── DELETE — no undo ──
+  void _deleteExpense(int index) {
+    final String deleted = _expenses[index];
 
-  void nextQuestion() {
-    setState(() {
-      answered = false;
-      selectedAnswer = null;
-      if (questionIndex < questions.length - 1) {
-        questionIndex++;
-      } else {
-        viewState = 2;
-      }
-    });
-  }
+    setState(() => _expenses.removeAt(index));
 
-  void restartQuiz() {
-    setState(() {
-      viewState = 0;
-      questionIndex = 0;
-      score = 0;
-      answered = false;
-      selectedAnswer = null;
-    });
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Deleted: $deleted'),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        // No SnackBarAction = no UNDO button
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0B4F7C), // Deep ocean blue
+      backgroundColor: const Color(0xFFF0FAF8),
       appBar: AppBar(
         title: const Text(
-          "Knowledge Test",
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            letterSpacing: 1.2,
-          ),
+          'Expense Tracker',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        centerTitle: true,
-        backgroundColor: const Color(0xFF1E88E5), // Ocean blue
-        elevation: 4,
-        shadowColor: Colors.black26,
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+        elevation: 3,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            tooltip: 'Add Expense',
+            onPressed: _openAddExpensePage,
+          ),
+        ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF0B4F7C), // Deep ocean blue
-              Color(0xFF1565C0), // Medium ocean blue
-              Color(0xFF1976D2), // Lighter ocean blue
-            ],
-          ),
-        ),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: _buildView(),
-          ),
-        ),
+      body: _expenses.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.savings_outlined,
+                    size: 72,
+                    color: Colors.teal.shade200,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No expenses yet.\nTap + Add to get started.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16, color: Colors.teal.shade300),
+                  ),
+                ],
+              ),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: _expenses.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 4),
+              itemBuilder: (context, index) {
+                return Dismissible(
+                  key: ValueKey('$index-${_expenses[index]}'),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade400,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.delete, color: Colors.white),
+                  ),
+                  onDismissed: (_) => _deleteExpense(index),
+                  child: Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.teal.shade100,
+                        child: Icon(
+                          Icons.receipt_long,
+                          color: Colors.teal.shade700,
+                        ),
+                      ),
+                      title: Text(
+                        _expenses[index],
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        'Expense #${index + 1}',
+                        style: TextStyle(color: Colors.grey.shade500),
+                      ),
+                      trailing: IconButton(
+                        icon: Icon(
+                          Icons.delete_outline,
+                          color: Colors.red.shade400,
+                        ),
+                        tooltip: 'Delete',
+                        onPressed: () => _deleteExpense(index),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openAddExpensePage,
+        icon: const Icon(Icons.add),
+        label: const Text('Add Expense'),
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
       ),
     );
   }
+}
 
-  Widget _buildView() {
-    // START VIEW
-    if (viewState == 0) {
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            constraints: const BoxConstraints(maxWidth: 600),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 60),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white,
-                  Color(0xFFE3F2FD), // Light blue tint
-                ],
-              ),
-              borderRadius: BorderRadius.circular(30),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF0D47A1).withOpacity(0.3),
-                  blurRadius: 25,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-              border: Border.all(
-                color: const Color(0xFF42A5F5).withOpacity(0.3),
-                width: 2,
-              ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.quiz,
-                  size: 120,
-                  color: Color(0xFF1565C0), // Ocean blue
-                ),
-                const SizedBox(height: 32),
-                const Text(
-                  "Business App Knowledge Test",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0D47A1), // Dark ocean blue
-                  ),
-                ),
-                const SizedBox(height: 40),
-                ElevatedButton(
-                  onPressed: startQuiz,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1976D2), // Ocean blue
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 48,
-                      vertical: 18,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                    elevation: 6,
-                    shadowColor: const Color(0xFF0D47A1).withOpacity(0.4),
-                  ),
-                  child: const Text(
-                    "Start Quiz",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+// ─────────────────────────────────────────────
+// SCREEN 2 — AddExpensePage
+// ─────────────────────────────────────────────
+class AddExpensePage extends StatefulWidget {
+  const AddExpensePage({super.key});
+
+  @override
+  State<AddExpensePage> createState() => _AddExpensePageState();
+}
+
+class _AddExpensePageState extends State<AddExpensePage> {
+  final TextEditingController _titleController = TextEditingController();
+  String? _errorMessage;
+
+  void _save() {
+    final String title = _titleController.text.trim();
+
+    if (title.isEmpty) {
+      setState(() => _errorMessage = 'Expense title cannot be empty.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter an expense title.'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
+      return;
     }
 
-    // QUIZ VIEW WITH Q&A STYLE
-    if (viewState == 1) {
-      final q = questions[questionIndex];
+    Navigator.pop(context, title);
+  }
 
-      return SingleChildScrollView(
+  @override
+  void dispose() {
+    _titleController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF0FAF8),
+      appBar: AppBar(
+        title: const Text(
+          'Add Expense',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+        elevation: 3,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Q&A Header
-            const Text(
-              "Q&A",
-              style: TextStyle(
-                fontSize: 56,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: 3,
-                shadows: [
-                  Shadow(
-                    blurRadius: 10.0,
-                    color: Color(0xFF0D47A1),
-                    offset: Offset(2.0, 2.0),
-                  ),
-                ],
+            // Header card
+            Card(
+              color: Colors.teal.shade50,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Icon(Icons.add_card, color: Colors.teal.shade600, size: 28),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Enter expense details',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.teal.shade700,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 32),
-
-            // Progress indicator
-            Text(
-              "Question ${questionIndex + 1} of ${questions.length}",
-              style: const TextStyle(
-                color: Color(0xFFE3F2FD),
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // Question bubble
-            _qaBubble(text: q["question"], isQuestion: true),
-            const SizedBox(height: 20),
-
-            // Answer choices as bubbles
-            for (int i = 0; i < q["choices"].length; i++)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: _answerBubble(
-                  text: q["choices"][i],
-                  index: i,
-                  isCorrect: i == q["answer"],
-                ),
-              ),
-
-            const SizedBox(height: 32),
-
-            if (answered)
-              ElevatedButton(
-                onPressed: nextQuestion,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1976D2), // Ocean blue
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 40,
-                    vertical: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  elevation: 6,
-                  shadowColor: const Color(0xFF0D47A1).withOpacity(0.4),
-                ),
-                child: const Text(
-                  "Next",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
 
             const SizedBox(height: 24),
 
-            // Brand name at bottom
-            const Text(
-              "@yourbrandname",
-              style: TextStyle(
-                color: Color(0xFFBBDEFB),
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
+            TextField(
+              controller: _titleController,
+              decoration: InputDecoration(
+                labelText: 'Expense title',
+                hintText: 'e.g. Coffee, Groceries...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.teal, width: 2),
+                ),
+                errorText: _errorMessage,
+                prefixIcon: const Icon(Icons.edit_note, color: Colors.teal),
+                labelStyle: const TextStyle(color: Colors.teal),
+              ),
+              textCapitalization: TextCapitalization.sentences,
+              onChanged: (_) {
+                if (_errorMessage != null) {
+                  setState(() => _errorMessage = null);
+                }
+              },
+            ),
+
+            const SizedBox(height: 32),
+
+            ElevatedButton.icon(
+              onPressed: _save,
+              icon: const Icon(Icons.save),
+              label: const Text('Save', style: TextStyle(fontSize: 16)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
-          ],
-        ),
-      );
-    }
 
-    // END VIEW
-    double percent = (score / questions.length) * 100;
-    String message = percent == 100
-        ? "🎉 Congratulations! You did great!"
-        : percent < 50
-        ? "💡 Better luck next time. Review and try again."
-        : "👍 Good job! Keep improving.";
+            const SizedBox(height: 12),
 
-    return _card(
-      Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.emoji_events,
-            size: 70,
-            color: Color(0xFF4CAF50), // Keep green for success
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            "Quiz Result",
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF0D47A1), // Dark ocean blue
-            ),
-          ),
-          Text(
-            "Score: $score / ${questions.length}",
-            style: const TextStyle(color: Color(0xFF1565C0)),
-          ),
-          Text(
-            "Percentage: ${percent.toStringAsFixed(0)}%",
-            style: const TextStyle(color: Color(0xFF1565C0)),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFF1976D2)),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: restartQuiz,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1976D2),
-              elevation: 4,
-              shadowColor: const Color(0xFF0D47A1).withOpacity(0.3),
-            ),
-            child: const Text(
-              "Restart Quiz",
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Q&A style bubble for questions
-  Widget _qaBubble({required String text, required bool isQuestion}) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white,
-            Color(0xFFE3F2FD), // Light ocean blue
-          ],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0D47A1).withOpacity(0.2),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-        border: Border.all(
-          color: const Color(0xFF42A5F5).withOpacity(0.3),
-          width: 1,
-        ),
-      ),
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w500,
-          color: Color(0xFF0D47A1), // Dark ocean blue
-        ),
-      ),
-    );
-  }
-
-  // Answer bubble (clickable)
-  Widget _answerBubble({
-    required String text,
-    required int index,
-    required bool isCorrect,
-  }) {
-    Color backgroundColor = Colors.white;
-    Color borderColor = const Color(0xFF42A5F5).withOpacity(0.3);
-    Gradient? gradient;
-
-    if (answered) {
-      if (isCorrect) {
-        gradient = const LinearGradient(
-          colors: [Color(0xFFE8F5E8), Color(0xFFC8E6C9)],
-        );
-        borderColor = const Color(0xFF4CAF50);
-      } else if (index == selectedAnswer) {
-        gradient = const LinearGradient(
-          colors: [Color(0xFFFFEBEE), Color(0xFFFFCDD2)],
-        );
-        borderColor = const Color(0xFFE53935);
-      }
-    } else {
-      gradient = const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Colors.white,
-          Color(0xFFE3F2FD), // Light ocean blue
-        ],
-      );
-    }
-
-    return GestureDetector(
-      onTap: answered ? null : () => answerQuestion(index),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: gradient == null ? backgroundColor : null,
-          gradient: gradient,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: borderColor, width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF0D47A1).withOpacity(0.15),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              style: TextButton.styleFrom(foregroundColor: Colors.teal),
+              child: const Text('Cancel'),
             ),
           ],
         ),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF0D47A1), // Dark ocean blue
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _card(Widget child) {
-    return Card(
-      elevation: 12,
-      shadowColor: const Color(0xFF0D47A1).withOpacity(0.3),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      color: Colors.white,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.white,
-              Color(0xFFE3F2FD), // Light ocean blue tint
-            ],
-          ),
-        ),
-        child: Padding(padding: const EdgeInsets.all(24), child: child),
       ),
     );
   }
